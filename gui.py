@@ -1,10 +1,15 @@
 import customtkinter as tk
 from PIL import Image
 import json
+from src.api import get_data, get_models, generate
 
 class App(tk.CTk):
     def __init__(self):
         super().__init__()
+
+        self.model = "absolute-reality-v1-8-1"
+        self.steps = 25
+        self.guidance = 7.5
 
         self.title("LeakAI")
         tk.set_appearance_mode("dark")
@@ -17,7 +22,7 @@ class App(tk.CTk):
         # idk why I need to use label to set the image >_<
         self.image_container = tk.CTkFrame(self, 512, 512, 0, 0)
         self.image_container.place(y=0, x=512)
-        self.image = tk.CTkImage(Image.open(self.get_data("last_image_used")), size=(512, 512))
+        self.image = tk.CTkImage(Image.open(get_data("last_image_used")), size=(512, 512))
         self.label = tk.CTkLabel(self.image_container, image=self.image, text="")
         self.label.place(anchor=tk.CENTER, relx=0.5, rely=0.5)
         
@@ -25,31 +30,98 @@ class App(tk.CTk):
         #    Prompt to Image
         #    Image to Image
         #    Upscale
-        self.tabview = tk.CTkTabview(self, 512, 512)
+        self.tabview = tk.CTkTabview(self, 512, 512, command=self.tab_handler, fg_color="#242424")
         self.tabview.place(x=0, y=0)
         self.PROMPT_TO_IMAGE = "Prompt to Image"
         self.IMAGE_TO_IMAGE = "Image to Image"
+        self.HISTORY = "History"
         self.tabview.add(self.PROMPT_TO_IMAGE)
         self.tabview.add(self.IMAGE_TO_IMAGE)
+        self.tabview.add(self.HISTORY)
 
-        # Prompt input for Prompt to Image tab
-        self.prompt_input = tk.CTkEntry(self, height=25, fg_color=None)
-        self.prompt_input.place(y=self.Y_OFFSET + 256, x=256, anchor=tk.CENTER)
+        # Prompt input
+        self.prompt_input = tk.CTkEntry(self, fg_color=None)
+        self.prompt_input.place(x=256, rely=0.54, anchor=tk.CENTER)
+        self.prompt_input_text = tk.CTkLabel(self, text="Prompt:")
+        self.prompt_input_text.place(relx=0.15, rely=.54, anchor=tk.CENTER)
+        
+        # Negative prompt input
+        self.negative_prompt_input = tk.CTkEntry(self, fg_color=None)
+        self.negative_prompt_input.place(x=256, rely=.625, anchor=tk.CENTER)
+        self.negative_prompt_input_text = tk.CTkLabel(self, text="Negative prompt:")
+        self.negative_prompt_input_text.place(relx=.125, rely=.625, anchor=tk.CENTER)
+
+        # Steps slider
+        self.steps_slider = tk.CTkSlider(self, from_=1, to=100, number_of_steps=40, command=self.steps_slider_handler)
+        self.steps_slider.set(self.steps)
+        self.steps_slider_text = tk.CTkLabel(self, text="Steps:")
+        self.steps_slider.place(x=256, rely=.2, anchor=tk.CENTER)
+        self.steps_slider_text.place(x=256, rely=.15, anchor=tk.CENTER)
+
+        # Guidance slider
+        self.guidance_slider = tk.CTkSlider(self, from_=1, to=20, number_of_steps=40, command=self.guidance_slider_handler)
+        self.guidance_slider.set(self.guidance)
+        self.guidance_slider_text = tk.CTkLabel(self, text="Guidance:")
+        self.guidance_slider.place(x=256, rely=.3, anchor=tk.CENTER)
+        self.guidance_slider_text.place(x=256, rely=.25, anchor=tk.CENTER)
+
+        # Strength slider to Image to Image tab
+        self.strength_slider = tk.CTkSlider(self.tabview.tab(self.IMAGE_TO_IMAGE), from_=0.1, to=1, number_of_steps=40)
+        self.strength_slider.set(0.5)
+        self.strength_slider_text = tk.CTkLabel(self.tabview.tab(self.IMAGE_TO_IMAGE), text="Strength:")
+        self.strength_slider.place(relx=.5, rely=.375, anchor=tk.CENTER)
+        self.strength_slider_text.place(relx=.5, rely=.32, anchor=tk.CENTER)
+
+        # Option menu with all models availible
+        self.models_option_menu = tk.CTkOptionMenu(self, values=get_models(), command=self.models_option_menu_handler)
+        self.models_option_menu.place(x=20, y=50)
+        
+        # Generate button
+        self.generate_button = tk.CTkButton(self, text="Generate", command=self.generate_callback)
+        self.generate_button.place(x=256, rely=.71, anchor=tk.CENTER)
+
+    def place(self):
+        self.guidance_slider.place(x=256, rely=.3, anchor=tk.CENTER)
+        self.models_option_menu.place(x=20, y=50)
+        self.guidance_slider_text.place(x=256, rely=.25, anchor=tk.CENTER)
+        self.steps_slider.place(x=256, rely=.2, anchor=tk.CENTER)
+        self.steps_slider_text.place(x=256, rely=.15, anchor=tk.CENTER)
+        self.negative_prompt_input_text.place(relx=.125, rely=.625, anchor=tk.CENTER)
+        self.negative_prompt_input.place(x=256, rely=.625, anchor=tk.CENTER)
+        self.prompt_input.place(x=256, rely=0.54, anchor=tk.CENTER)
+        self.generate_button.place(x=256, rely=.71 ,anchor=tk.CENTER)
+        self.prompt_input_text.place(relx=0.15, rely=.54, anchor=tk.CENTER)
+    def forget(self):
+        self.models_option_menu.place_forget()
+        self.steps_slider.place_forget()
+        self.steps_slider_text.place_forget()
+        self.negative_prompt_input_text.place_forget()
+        self.negative_prompt_input.place_forget()
+        self.prompt_input.place_forget()
+        self.prompt_input_text.place_forget()
+        self.generate_button.place_forget()
+        self.guidance_slider.place_forget()
+        self.guidance_slider_text.place_forget()
+
+    def guidance_slider_handler(self):
+        self.guidance = self.guidance_slider.get()
+
+    def steps_slider_handler(self):
+        self.steps = self.steps_slider.get()
+    
+    def models_option_menu_handler(self, _):
+        self.model = self.models_option_menu.get()
+
+    def generate_callback(self):
+        image = generate(self.prompt_input.get(), self.model, self.steps, self.guidance, self.negative_prompt_input.get())
+        self.image.configure(light_image=Image.open(image))
 
 
-    def get_data(self, key: str):
-        # Reads the json from src/data.json and returns the value by key provided
-        try:
-            with open("src/data.json", "r") as file:
-                data = json.load(file)
-                return data.get(key)
-        except FileNotFoundError:
-            print("Error: JSON file not found.")
-            return None
-        except json.JSONDecodeError:
-            print("Error: Unable to decode JSON file.")
-            return None
-
+    def tab_handler(self):
+        if self.tabview.get() == self.HISTORY:
+            self.forget()
+        else:
+            self.place()
 
 if __name__ == "__main__":
     app = App()
