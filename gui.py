@@ -11,6 +11,8 @@ class App(tk.CTk):
         self.resizable(False, False)
         self.geometry("1024x512")
 
+        self.Y_OFFSET = 55
+
         # create container for image at the right half of the window
         # idk why I need to use label to set the image >_<
         self.image_container = tk.CTkFrame(self, 512, 512, 0, 0)
@@ -29,6 +31,11 @@ class App(tk.CTk):
         self.IMAGE_TO_IMAGE = "Image to Image"
         self.tabview.add(self.PROMPT_TO_IMAGE)
         self.tabview.add(self.IMAGE_TO_IMAGE)
+
+        # Prompt input for Prompt to Image tab
+        self.prompt_input = tk.CTkEntry(self, height=25, fg_color=None)
+        self.prompt_input.place(y=self.Y_OFFSET + 256, x=256, anchor=tk.CENTER)
+
 
     def get_data(self, key: str):
         # Reads the json from src/data.json and returns the value by key provided
