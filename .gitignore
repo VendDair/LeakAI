@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 src/images/*
-
+123/
 # C extensions
 *.so
 
@@ -123,3 +123,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+test.py
