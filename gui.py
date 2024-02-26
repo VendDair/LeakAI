@@ -1,7 +1,7 @@
 import customtkinter as tk
 from PIL import Image
 import json
-from src.api import get_data, get_models, generate
+from src.api import get_data, get_models, generate, gpt_request, image_to_image
 
 class App(tk.CTk):
     def __init__(self):
@@ -10,6 +10,7 @@ class App(tk.CTk):
         self.model = "absolute-reality-v1-8-1"
         self.steps = 25
         self.guidance = 7.5
+        self.strength = 0.2
 
         self.title("LeakAI")
         tk.set_appearance_mode("dark")
@@ -66,7 +67,7 @@ class App(tk.CTk):
         self.guidance_slider_text.place(x=256, rely=.25, anchor=tk.CENTER)
 
         # Strength slider to Image to Image tab
-        self.strength_slider = tk.CTkSlider(self.tabview.tab(self.IMAGE_TO_IMAGE), from_=0.1, to=1, number_of_steps=40)
+        self.strength_slider = tk.CTkSlider(self.tabview.tab(self.IMAGE_TO_IMAGE), from_=0.1, to=1, number_of_steps=40, command=self.strength_slider_handler)
         self.strength_slider.set(0.5)
         self.strength_slider_text = tk.CTkLabel(self.tabview.tab(self.IMAGE_TO_IMAGE), text="Strength:")
         self.strength_slider.place(relx=.5, rely=.375, anchor=tk.CENTER)
@@ -75,12 +76,17 @@ class App(tk.CTk):
         # Option menu with all models availible
         self.models_option_menu = tk.CTkOptionMenu(self, values=get_models(), command=self.models_option_menu_handler)
         self.models_option_menu.place(x=20, y=50)
+
+        # Check box for AI help
+        self.ai_checkbox = tk.CTkCheckBox(self, width=10, text="Use AI")
+        self.ai_checkbox.place(relx=0.375, rely=.54, anchor=tk.CENTER)
         
         # Generate button
         self.generate_button = tk.CTkButton(self, text="Generate", command=self.generate_callback)
         self.generate_button.place(x=256, rely=.71, anchor=tk.CENTER)
 
     def place(self):
+        self.ai_checkbox.place(relx=0.375, rely=.54, anchor=tk.CENTER)
         self.guidance_slider.place(x=256, rely=.3, anchor=tk.CENTER)
         self.models_option_menu.place(x=20, y=50)
         self.guidance_slider_text.place(x=256, rely=.25, anchor=tk.CENTER)
@@ -92,6 +98,7 @@ class App(tk.CTk):
         self.generate_button.place(x=256, rely=.71 ,anchor=tk.CENTER)
         self.prompt_input_text.place(relx=0.15, rely=.54, anchor=tk.CENTER)
     def forget(self):
+        self.ai_checkbox.place_forget()
         self.models_option_menu.place_forget()
         self.steps_slider.place_forget()
         self.steps_slider_text.place_forget()
@@ -102,6 +109,9 @@ class App(tk.CTk):
         self.generate_button.place_forget()
         self.guidance_slider.place_forget()
         self.guidance_slider_text.place_forget()
+    
+    def strength_slider_handler(self, _):
+        self.strength = self.strength_slider.get()
 
     def guidance_slider_handler(self):
         self.guidance = self.guidance_slider.get()
@@ -113,7 +123,15 @@ class App(tk.CTk):
         self.model = self.models_option_menu.get()
 
     def generate_callback(self):
-        image = generate(self.prompt_input.get(), self.model, self.steps, self.guidance, self.negative_prompt_input.get())
+        prompt = self.prompt_input.get()
+        if self.ai_checkbox.get() == 1:
+            prompt = gpt_request(prompt)
+        print(prompt)
+        image = ""
+        if self.tabview.get() == self.PROMPT_TO_IMAGE: image = generate(prompt, self.model, self.steps, self.guidance, self.negative_prompt_input.get())
+        elif self.tabview.get() == self.IMAGE_TO_IMAGE: image = image_to_image(prompt, self.model, self.steps, self.guidance, self.strength, self.negative_prompt_input.get())
+        else: return
+
         self.image.configure(light_image=Image.open(image))
 
 

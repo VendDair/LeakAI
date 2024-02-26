@@ -1,13 +1,14 @@
 # LeakAI (beta)
 
 Simple GUI app that uses "free" API to generate, remake and upscale images\
-It uses [customtkinter](https://github.com/TomSchimansky/CustomTkinter) instead of tkinter\
+It uses [customtkinter](https://github.com/TomSchimansky/CustomTkinter) instead of tkinter
 
 PS: The release in not done yet due to some features that are not implemented\
 x Prompt to Image\
-0 Image to Image\
+x Image to Image\
+0 Upscale\
 0 History\
-0 AI Helper for user prompt
+x AI Helper for user prompt
 
 # How to use
 Simply install this dependency and you're ready to go!

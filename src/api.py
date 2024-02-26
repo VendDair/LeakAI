@@ -1,6 +1,7 @@
 import json
 import requests
 import base64 as bs
+import g4f
 
 def get_data(key: str):
     # Reads the json from src/data.json and returns the value by key provided
@@ -40,6 +41,15 @@ def get_headers():
         "authorization": f"Bearer {key}"
     }
 
+def get_set_base64(file_path: str):
+    with open(file_path, "rb") as image_file:
+        binary_data = image_file.read()
+        base64 = bs.b64encode(binary_data).decode('utf-8')
+        write_data("base64", bs.b64encode(binary_data).decode('utf-8'))
+        print(base64)
+        return base64
+
+
 def generate(prompt: str, model: str, steps: int, guidance: float, negative_prompt: str):
     url = "https://api.getimg.ai/v1/stable-diffusion/text-to-image"
 
@@ -63,11 +73,11 @@ def generate(prompt: str, model: str, steps: int, guidance: float, negative_prom
     base64_image = responseJson["image"]
     print(base64_image)
 
-    return save_to_img(base64_image.encode("utf-8"), f"src/images/{get_data('id')}.jpg")
+    return save_to_img(base64_image.encode("utf-8"))
 
 
-def save_to_img(base64, file_name):
-    
+def save_to_img(base64):
+    file_name = f"src/images/{get_data('id')}.jpg"  
     write_data("last_image_used", file_name)
     write_data("base64", base64.decode())
 
@@ -92,6 +102,43 @@ def get_models():
         models.append(item["id"])
     return models
 
+
+def gpt_request(text: str):
+    response = g4f.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user",
+           "content": f'Make an prompt for Ai that generate photos based on user prompt. Your task is to rewrite the following prompt to make the result as best as possible (it doesnt need to be long). Your answer need to be only the prompt: "{text}"'}],
+        # stream=True,
+        version="0.1.9.3",
+        # provider=g4f.Provider.You,
+    )
+    resp_list = []
+    for message in response:
+        resp_list.append(message)
+    resp = "".join(resp_list)
+    return resp
+
+def image_to_image(prompt: str, model: str, steps: int, guidance: float, strength: float, negative_prompt: str):
+    url = "https://api.getimg.ai/v1/stable-diffusion/image-to-image"
+
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "negative_prompt": f"Disfigured, blurry, ugly, distortion, {negative_prompt}",
+        "image": get_data("base64"),
+        "strength": strength,
+        "steps": steps,
+        "guidance": guidance
+    }
+
+    response = requests.post(url, json=payload, headers=get_headers())
+
+    print(response.text)
+
+    responseJson = response.json()
+
+    base64_image = responseJson["image"]
+    return save_to_img(base64_image.encode("utf-8"))
 
 
 
