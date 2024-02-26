@@ -42,11 +42,12 @@ def get_headers():
     }
 
 def get_set_base64(file_path: str):
+    write_data("last_image_used", file_path)
     with open(file_path, "rb") as image_file:
         binary_data = image_file.read()
         base64 = bs.b64encode(binary_data).decode('utf-8')
         write_data("base64", bs.b64encode(binary_data).decode('utf-8'))
-        print(base64)
+        #print(base64)
         return base64
 
 
