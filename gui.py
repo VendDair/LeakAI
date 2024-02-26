@@ -1,7 +1,10 @@
 import customtkinter as tk
 from PIL import Image
 import json
-from src.api import get_data, get_models, generate, gpt_request, image_to_image, upscale
+import os
+from functools import partial
+from src.api import get_data, get_models, generate, gpt_request, image_to_image, upscale, get_set_base64
+from glob import glob
 
 class App(tk.CTk):
     def __init__(self):
@@ -87,6 +90,10 @@ class App(tk.CTk):
         # Upscale button for Upscale tab
         self.upscale_button = tk.CTkButton(self.tabview.tab(self.UPSCALE), text="Upscale", command=self.upscale_button_handler)
         self.upscale_button.pack()
+    
+        # History frame for History tab
+        self.history_scrollable_frame = tk.CTkScrollableFrame(self.tabview.tab(self.HISTORY), width=450, height=450)
+        self.history_scrollable_frame.pack()
         
         # Generate button
         self.generate_button = tk.CTkButton(self, text="Generate", command=self.generate_callback)
@@ -144,9 +151,60 @@ class App(tk.CTk):
 
         self.image.configure(light_image=Image.open(image))
 
+    def use_img(self, file_path: str):
+        self.image.configure(light_image=Image.open(file_path))
+        get_set_base64(file_path)
+
+    def preview_img(self, file_path: str):
+        self.image.configure(light_image=Image.open(file_path))
+    
+    def delete_img(self, file_path: str, frame: tk.CTkFrame):
+        os.remove(file_path)
+        frame.destroy()
+        frame.pack_forget()
+
+        self.files = glob(os.path.join("src/images", "*.jpg"))
+        self.files = reversed(self.files)
+        file_path = next(iter(self.files), None)
+
+        get_set_base64(file_path)
+        self.image.configure(light_image=Image.open(file_path))
+
+    def history(self):
+        self.files = glob(os.path.join("src/images", "*.jpg"))
+        self.files = reversed(self.files)
+
+        for file in self.files:
+            image_raw = Image.open(file)
+            image = tk.CTkImage(image_raw, size=(150, 150))
+
+            frame = tk.CTkFrame(self.history_scrollable_frame, width=400, height=256)
+
+            size = f"{image_raw.size[0]}x{image_raw.size[0]}"
+            size_label = tk.CTkLabel(frame, text=size)
+            size_label.pack(side=tk.TOP, padx=10)
+
+            lb = tk.CTkLabel(frame, image=image, text="")
+            lb.pack(side=tk.LEFT, padx=10)
+            tk.CTkButton(frame, text="Use", width=100, command=partial(self.use_img, file)).pack(side=tk.RIGHT, fill="x")
+            tk.CTkButton(frame, text="Preview", width=100, command=partial(self.preview_img, file)).pack(side=tk.RIGHT,
+                                                                                                        fill="x")
+            tk.CTkButton(frame, text="Delete", width=50, command=partial(self.delete_img, file, frame)).pack(
+                side=tk.RIGHT,
+                fill="x")
+            frame.pack(pady=20)
+
 
     def tab_handler(self):
-        if self.tabview.get() == self.HISTORY or self.tabview.get() == self.UPSCALE:
+        if self.tabview.get() != self.HISTORY:
+            self.image.configure(light_image=Image.open(get_data("last_image_used")))
+            for widget in self.history_scrollable_frame.winfo_children():
+                widget.destroy()
+
+        if self.tabview.get() == self.HISTORY:
+            self.forget()
+            self.history()
+        elif self.tabview.get() == self.UPSCALE:
             self.forget()
         else:
             self.place()
