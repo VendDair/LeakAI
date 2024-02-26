@@ -6,7 +6,7 @@ It uses [customtkinter](https://github.com/TomSchimansky/CustomTkinter) instead 
 PS: The release in not done yet due to some features that are not implemented\
 x Prompt to Image\
 x Image to Image\
-0 Upscale\
+x Upscale\
 0 History\
 x AI Helper for user prompt
 

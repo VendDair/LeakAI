@@ -1,7 +1,7 @@
 import customtkinter as tk
 from PIL import Image
 import json
-from src.api import get_data, get_models, generate, gpt_request, image_to_image
+from src.api import get_data, get_models, generate, gpt_request, image_to_image, upscale
 
 class App(tk.CTk):
     def __init__(self):
@@ -31,13 +31,16 @@ class App(tk.CTk):
         #    Prompt to Image
         #    Image to Image
         #    Upscale
+        #    History
         self.tabview = tk.CTkTabview(self, 512, 512, command=self.tab_handler, fg_color="#242424")
         self.tabview.place(x=0, y=0)
         self.PROMPT_TO_IMAGE = "Prompt to Image"
         self.IMAGE_TO_IMAGE = "Image to Image"
+        self.UPSCALE = "Upscale"
         self.HISTORY = "History"
         self.tabview.add(self.PROMPT_TO_IMAGE)
         self.tabview.add(self.IMAGE_TO_IMAGE)
+        self.tabview.add(self.UPSCALE)
         self.tabview.add(self.HISTORY)
 
         # Prompt input
@@ -80,6 +83,10 @@ class App(tk.CTk):
         # Check box for AI help
         self.ai_checkbox = tk.CTkCheckBox(self, width=10, text="Use AI")
         self.ai_checkbox.place(relx=0.375, rely=.54, anchor=tk.CENTER)
+
+        # Upscale button for Upscale tab
+        self.upscale_button = tk.CTkButton(self.tabview.tab(self.UPSCALE), text="Upscale", command=self.upscale_button_handler)
+        self.upscale_button.pack()
         
         # Generate button
         self.generate_button = tk.CTkButton(self, text="Generate", command=self.generate_callback)
@@ -110,6 +117,9 @@ class App(tk.CTk):
         self.guidance_slider.place_forget()
         self.guidance_slider_text.place_forget()
     
+    def upscale_button_handler(self):
+        upscale()
+
     def strength_slider_handler(self, _):
         self.strength = self.strength_slider.get()
 
@@ -136,7 +146,7 @@ class App(tk.CTk):
 
 
     def tab_handler(self):
-        if self.tabview.get() == self.HISTORY:
+        if self.tabview.get() == self.HISTORY or self.tabview.get() == self.UPSCALE:
             self.forget()
         else:
             self.place()

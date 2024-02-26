@@ -140,6 +140,25 @@ def image_to_image(prompt: str, model: str, steps: int, guidance: float, strengt
     base64_image = responseJson["image"]
     return save_to_img(base64_image.encode("utf-8"))
 
+def upscale():
+    url = "https://api.getimg.ai/v1/enhancements/upscale"
+
+    payload = {
+        "model": "real-esrgan-4x",
+        "image": get_data("base64"),
+        "scale": 4,
+        "output_format": "jpeg"
+    }
+    response = requests.post(url, json=payload, headers=get_headers())
+
+    print(response.text)
+    responseJson = response.json()
+
+    base64_image = responseJson["image"]
+    return save_to_img(base64_image.encode("utf-8"))
+
+
+
 
 
 
